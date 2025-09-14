@@ -8,8 +8,14 @@ export class Sprite {
         this.loadError = false;
         this.assetLoader = assetLoader;
         
+        // Если передан объект Image напрямую
+        if (imagePath && imagePath instanceof Image) {
+            this.image = imagePath;
+            this.loaded = true;
+            console.log('Sprite initialized with Image object');
+        }
         // Если есть загрузчик ассетов, используем его
-        if (this.assetLoader) {
+        else if (this.assetLoader) {
             this.loadFromAssetLoader();
         } else {
             this.loadImage();

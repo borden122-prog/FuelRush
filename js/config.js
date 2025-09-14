@@ -17,7 +17,7 @@ export const CONFIG = {
         MOVE_SPEED: 0.15,
         TURN_SPEED: 0.08,
         TURN_ANGLE: 5, // градусы
-        MOVE_DISTANCE: 3 // пикселей за кадр
+        MOVE_DISTANCE: 4 // пикселей за кадр
     },
     
     // Препятствия
@@ -63,7 +63,13 @@ export const CONFIG = {
     // Спрайты
     SPRITES: {
         PLAYER_CAR: 'assets/images/player-car.png',
-        OBSTACLE_CAR: 'assets/images/obstacle-car.png',
+        OBSTACLE_CARS: [
+            'assets/images/obstacle-car1.png',
+            'assets/images/obstacle-car2.png',
+            'assets/images/obstacle-car3.png',
+            'assets/images/obstacle-car4.png',
+            'assets/images/obstacle-car5.png'
+        ],
         ROAD_TEXTURE: 'assets/images/road-texture.png'
     }
 };

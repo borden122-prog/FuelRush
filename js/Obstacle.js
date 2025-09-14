@@ -9,7 +9,11 @@ export class Obstacle {
         this.height = CONFIG.OBSTACLE.HEIGHT;
         this.color = CONFIG.OBSTACLE.COLOR;
         this.speed = gameSpeed * CONFIG.OBSTACLE.SPEED_MULTIPLIER;
-        this.sprite = new Sprite(CONFIG.SPRITES.OBSTACLE_CAR, this.width, this.height, assetLoader);
+        this.assetLoader = assetLoader;
+        
+        // Получаем случайное изображение препятствия
+        const randomCarImage = assetLoader ? assetLoader.getRandomObstacleCar() : null;
+        this.sprite = new Sprite(randomCarImage, this.width, this.height, assetLoader);
     }
     
     // Инициализация объекта из пула
@@ -17,6 +21,12 @@ export class Obstacle {
         this.x = x;
         this.y = y;
         this.speed = gameSpeed * CONFIG.OBSTACLE.SPEED_MULTIPLIER;
+        
+        // Выбираем новое случайное изображение для препятствия
+        if (this.assetLoader) {
+            const randomCarImage = this.assetLoader.getRandomObstacleCar();
+            this.sprite = new Sprite(randomCarImage, this.width, this.height, this.assetLoader);
+        }
     }
     
     // Сброс объекта для возврата в пул

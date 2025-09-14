@@ -102,13 +102,25 @@ export class AssetLoader {
         return this.loadedCount / this.totalCount;
     }
 
+    // Получение случайного изображения препятствия
+    getRandomObstacleCar() {
+        const obstacleCount = CONFIG.SPRITES.OBSTACLE_CARS.length;
+        const randomIndex = Math.floor(Math.random() * obstacleCount);
+        return this.getAsset(`obstacleCar${randomIndex}`);
+    }
+
     // Инициализация загрузки всех игровых ассетов
     static loadGameAssets() {
         const loader = new AssetLoader();
         
         // Добавляем все ассеты из конфигурации
         loader.addAsset('playerCar', CONFIG.SPRITES.PLAYER_CAR);
-        loader.addAsset('obstacleCar', CONFIG.SPRITES.OBSTACLE_CAR);
+        
+        // Добавляем все изображения препятствий
+        CONFIG.SPRITES.OBSTACLE_CARS.forEach((carPath, index) => {
+            loader.addAsset(`obstacleCar${index}`, carPath);
+        });
+        
         loader.addAsset('roadTexture', CONFIG.SPRITES.ROAD_TEXTURE);
         
         return loader;

@@ -39,7 +39,7 @@ export class ObstacleManager {
         }
     }
     
-    // Создание нового препятствия с умной логикой
+    // Создание нового препятствия
     spawnObstacle(gameSpeed) {
         // Получаем занятые полосы в верхней части экрана
         const occupiedLanes = this.getOccupiedLanesInTopArea();
@@ -71,6 +71,7 @@ export class ObstacleManager {
             );
         }
     }
+    
     
     // Получение занятых полос в верхней части экрана
     getOccupiedLanesInTopArea() {
@@ -125,6 +126,7 @@ export class ObstacleManager {
             this.spawnObstacle(gameSpeed);
         }
     }
+    
     
     // Отрисовка всех препятствий
     draw(ctx) {
