@@ -37,8 +37,18 @@ export class Obstacle {
     }
     
     // Обновление позиции
-    update(deltaTime) {
-        this.y += this.speed * deltaTime;
+    update(deltaTime, newSpeed = null, direction = null) {
+        // Если передана новая скорость, используем её, иначе используем сохраненную
+        const effectiveSpeed = newSpeed !== null ? newSpeed * CONFIG.OBSTACLE.SPEED_MULTIPLIER : this.speed;
+        
+        // Определяем направление движения (используем переданное направление или глобальное)
+        const effectiveDirection = direction !== null ? direction : CONFIG.OBSTACLE.DIRECTION;
+        
+        if (effectiveDirection === 'up') {
+            this.y -= effectiveSpeed * deltaTime; // Движение вверх
+        } else {
+            this.y += effectiveSpeed * deltaTime; // Движение вниз (по умолчанию)
+        }
     }
     
     // Отрисовка препятствия
@@ -48,8 +58,16 @@ export class Obstacle {
     }
     
     // Проверка, вышло ли препятствие за экран
-    isOffScreen(canvasHeight) {
-        return this.y > canvasHeight + 100;
+    isOffScreen(canvasHeight, direction = null) {
+        const effectiveDirection = direction !== null ? direction : CONFIG.OBSTACLE.DIRECTION;
+        
+        if (effectiveDirection === 'up') {
+            // При движении вверх препятствие выходит за экран, когда его нижняя часть выше верхней границы экрана
+            return this.y + this.height < -100;
+        } else {
+            // При движении вниз препятствие выходит за экран, когда его верхняя часть ниже нижней границы экрана
+            return this.y > canvasHeight + 100;
+        }
     }
     
     // Проверка столкновения с игроком

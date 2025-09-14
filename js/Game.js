@@ -5,6 +5,7 @@ import { Road } from './Road.js';
 import { InputManager } from './InputManager.js';
 import { DisplayManager } from './DisplayManager.js';
 import { AssetLoader } from './AssetLoader.js';
+import { Sprite } from './Sprite.js';
 
 export class Game {
     constructor() {
@@ -18,6 +19,8 @@ export class Game {
         this.loadingScreenElement = document.getElementById('loadingScreen');
         this.startScreenElement = document.getElementById('startScreen');
         this.startBtn = document.getElementById('startBtn');
+        this.fuelEmptyElement = document.getElementById('fuelEmpty');
+        this.refuelBtn = document.getElementById('refuelBtn');
         
         // Загрузчик ассетов
         this.assetLoader = null;
@@ -35,6 +38,25 @@ export class Game {
         this.gameSpeed = CONFIG.GAME.BASE_SPEED;
         this.restartFrameCount = 0;
         this.assetsLoaded = false;
+        
+        // Состояние события "закончился бензин"
+        this.fuelEventTriggered = false;
+        this.fuelEventDistance = 200; // метров
+        this.isSlowingDown = false;
+        this.isAccelerating = false;
+        this.slowDownSpeed = 0;
+        this.accelerationSpeed = 0;
+        this.isFuelScreenVisible = false;
+        this.slowDownAnimationId = null;
+        this.isChangingDirection = false;
+        this.directionChangeAnimationId = null;
+        this.obstacleSpeedAtSlowDown = null;
+        
+        // Индикатор топлива
+        this.fuelIndicatorVisible = false;
+        this.fuelIndicatorCurrentFrame = 0;
+        this.fuelIndicatorLastSwitch = 0;
+        this.fuelIndicatorSprites = [];
         
         // Игровые объекты
         this.player = null;
@@ -60,6 +82,7 @@ export class Game {
         this.setupEventListeners();
         this.loadAssets();
     }
+    
     
     setupCanvas() {
         // Устанавливаем размеры canvas под размер экрана
@@ -98,6 +121,20 @@ export class Game {
         this.obstacleManager = new ObstacleManager(this.canvasWidth, this.canvasHeight, this.assetLoader);
         this.road = new Road(this.canvasWidth, this.canvasHeight, this.assetLoader);
         this.inputManager = new InputManager(this.canvas, this.player);
+        
+        // Инициализируем спрайты индикатора топлива
+        this.initFuelIndicatorSprites();
+    }
+    
+    initFuelIndicatorSprites() {
+        try {
+            this.fuelIndicatorSprites = CONFIG.SPRITES.FUEL_CHECK.map(spritePath => 
+                new Sprite(spritePath, CONFIG.FUEL_INDICATOR.WIDTH, CONFIG.FUEL_INDICATOR.HEIGHT, this.assetLoader)
+            );
+        } catch (error) {
+            console.warn('Не удалось загрузить спрайты индикатора топлива:', error);
+            this.fuelIndicatorSprites = [];
+        }
     }
     
     setupEventListeners() {
@@ -109,6 +146,11 @@ export class Game {
         // Кнопка старта
         this.startBtn.addEventListener('click', () => {
             this.startGame();
+        });
+        
+        // Кнопка заправки
+        this.refuelBtn.addEventListener('click', () => {
+            this.refuel();
         });
     }
     
@@ -227,8 +269,125 @@ export class Game {
             this.lastScore = displayScore;
             this.needsRedraw = true;
         }
+        
+        // Проверяем событие "закончился бензин"
+        if (!this.fuelEventTriggered && this.score >= this.fuelEventDistance) {
+            this.triggerFuelEvent();
+        }
     }
     
+    triggerFuelEvent() {
+        this.fuelEventTriggered = true;
+        this.isSlowingDown = true;
+        this.slowDownSpeed = this.gameSpeed;
+        
+        // Сохраняем текущую скорость препятствий
+        this.obstacleSpeedAtSlowDown = CONFIG.GAME.BASE_SPEED;
+        
+        // Сразу меняем направление препятствий на 'up'
+        CONFIG.OBSTACLE.DIRECTION = 'up';
+        
+        // Показываем индикатор топлива
+        this.fuelIndicatorVisible = true;
+        this.fuelIndicatorLastSwitch = performance.now();
+        
+        // Плавное замедление до минимальной скорости
+        this.slowDownToMinSpeed();
+    }
+    
+    slowDownToMinSpeed() {
+        const slowDownDuration = 2000; // 2 секунды на замедление
+        const minSpeed = CONFIG.GAME.BASE_SPEED * 0.3; // Минимальная скорость (30% от базовой)
+        const startTime = performance.now();
+        
+        const animateSlowDown = (currentTime) => {
+            // Проверяем, не была ли анимация отменена
+            if (this.slowDownAnimationId === null) {
+                return;
+            }
+            
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / slowDownDuration, 1);
+            
+            // Плавное замедление с использованием ease-out функции
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            // Замедляем до минимальной скорости, а не до полной остановки
+            this.gameSpeed = this.slowDownSpeed - (this.slowDownSpeed - minSpeed) * easeOut;
+            
+            if (progress < 1) {
+                this.slowDownAnimationId = requestAnimationFrame(animateSlowDown);
+            } else {
+                // Достигли минимальной скорости
+                this.gameSpeed = minSpeed;
+                this.isSlowingDown = false;
+                this.slowDownAnimationId = null;
+                
+                // Показываем затемнение и поп-ап
+                this.screenFadeElement.classList.add('active');
+                setTimeout(() => {
+                    this.fuelEmptyElement.style.display = 'block';
+                    this.isFuelScreenVisible = true;
+                    this.inputManager.setFuelScreenVisible(true);
+                }, 300);
+            }
+        };
+        
+        this.slowDownAnimationId = requestAnimationFrame(animateSlowDown);
+    }
+    
+    
+    stopSlowDownAnimation() {
+        if (this.slowDownAnimationId !== null) {
+            cancelAnimationFrame(this.slowDownAnimationId);
+            this.slowDownAnimationId = null;
+            this.isSlowingDown = false;
+        }
+    }
+    
+    refuel() {
+        // Скрываем поп-ап
+        this.fuelEmptyElement.style.display = 'none';
+        this.isFuelScreenVisible = false;
+        this.inputManager.setFuelScreenVisible(false);
+        
+        // Убираем затемнение
+        this.screenFadeElement.classList.remove('active');
+        
+        // Возвращаем направление препятствий к нормальному
+        CONFIG.OBSTACLE.DIRECTION = 'down';
+        
+        // Скрываем индикатор топлива
+        this.fuelIndicatorVisible = false;
+        
+        // Плавное ускорение до стандартной скорости
+        this.accelerateToNormalSpeed();
+    }
+    
+    accelerateToNormalSpeed() {
+        const accelerationDuration = 2000; // 2 секунды на ускорение
+        const startTime = performance.now();
+        const targetSpeed = CONFIG.GAME.BASE_SPEED;
+        
+        const animateAcceleration = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / accelerationDuration, 1);
+            
+            // Плавное ускорение с использованием ease-out функции
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            this.gameSpeed = targetSpeed * easeOut;
+            
+            if (progress < 1) {
+                requestAnimationFrame(animateAcceleration);
+            } else {
+                // Достигли стандартной скорости
+                this.gameSpeed = targetSpeed;
+                this.isAccelerating = false;
+            }
+        };
+        
+        requestAnimationFrame(animateAcceleration);
+    }
+
     gameOver() {
         this.gameRunning = false;
         this.finalScoreElement.textContent = Math.floor(this.score);
@@ -257,11 +416,33 @@ export class Game {
         this.gameSpeed = CONFIG.GAME.BASE_SPEED;
         this.restartFrameCount = 0;
         
+        // Сбрасываем состояние события "закончился бензин"
+        this.fuelEventTriggered = false;
+        this.isSlowingDown = false;
+        this.isAccelerating = false;
+        this.slowDownSpeed = 0;
+        this.accelerationSpeed = 0;
+        this.isFuelScreenVisible = false;
+        this.slowDownAnimationId = null;
+        this.isChangingDirection = false;
+        this.directionChangeAnimationId = null;
+        this.obstacleSpeedAtSlowDown = null;
+        
+        // Сбрасываем индикатор топлива
+        this.fuelIndicatorVisible = false;
+        this.fuelIndicatorCurrentFrame = 0;
+        this.fuelIndicatorLastSwitch = 0;
+        
+        // Возвращаем направление препятствий к нормальному
+        CONFIG.OBSTACLE.DIRECTION = 'down';
+        
         this.obstacleManager.clear();
         this.player.reset();
         
         this.gameOverElement.style.display = 'none';
+        this.fuelEmptyElement.style.display = 'none';
         this.screenFadeElement.classList.remove('active');
+        this.inputManager.setFuelScreenVisible(false);
         
         this.scoreElement.textContent = '0';
         this.scoreElement.innerHTML = '0';
@@ -295,25 +476,78 @@ export class Game {
         this.road.draw(this.ctx, this.gameSpeed);
         this.obstacleManager.draw(this.ctx);
         this.player.draw(this.ctx);
+        
+        // Отрисовываем индикатор топлива
+        this.drawFuelIndicator();
     }
     
     update(deltaTime) {
         if (!this.gameRunning) return;
         
-        this.player.update(deltaTime);
-        this.obstacleManager.update(deltaTime, this.gameSpeed);
+        // Обновляем игрока с учетом скорости поворота
+        const turnSpeedMultiplier = this.isSlowingDown ? (this.gameSpeed / CONFIG.GAME.BASE_SPEED) : 1;
+        this.player.update(deltaTime, turnSpeedMultiplier);
+        
+        // Препятствия используют сохраненную скорость во время замедления игрока
+        const obstacleSpeed = this.isSlowingDown ? this.obstacleSpeedAtSlowDown : this.gameSpeed;
+        // Во время экрана заправки не спавним новые препятствия
+        const allowSpawning = !this.isFuelScreenVisible;
+        this.obstacleManager.update(deltaTime, this.gameSpeed, obstacleSpeed, this.player.y, this.isSlowingDown, allowSpawning);
+        
+        // Дорога замедляется вместе с игроком для реалистичности
         this.road.update(deltaTime, this.gameSpeed);
         
-        // Проверяем столкновения
-        if (this.obstacleManager.checkCollisions(this.player)) {
+        // Проверяем столкновения (всегда, кроме ускорения)
+        if (!this.isAccelerating && this.obstacleManager.checkCollisions(this.player)) {
+            // Останавливаем анимацию замедления, если она активна
+            this.stopSlowDownAnimation();
+            
+            // Если экран бензина виден, скрываем его и показываем game over
+            if (this.isFuelScreenVisible) {
+                this.fuelEmptyElement.style.display = 'none';
+                this.screenFadeElement.classList.remove('active');
+                this.isFuelScreenVisible = false;
+                this.inputManager.setFuelScreenVisible(false);
+            }
             this.gameOver();
             return;
         }
         
         this.updateScore(deltaTime);
         
+        // Обновляем анимацию индикатора топлива
+        this.updateFuelIndicator();
+        
         // Помечаем, что нужна перерисовка
         this.needsRedraw = true;
+    }
+    
+    updateFuelIndicator() {
+        if (!this.fuelIndicatorVisible) return;
+        
+        const currentTime = performance.now();
+        const timeSinceLastSwitch = currentTime - this.fuelIndicatorLastSwitch;
+        
+        // Переключаем кадр каждые 600ms
+        if (timeSinceLastSwitch >= CONFIG.ANIMATION.FUEL_INDICATOR_SWITCH_INTERVAL) {
+            this.fuelIndicatorCurrentFrame = (this.fuelIndicatorCurrentFrame + 1) % 2;
+            this.fuelIndicatorLastSwitch = currentTime;
+        }
+    }
+    
+    drawFuelIndicator() {
+        if (!this.fuelIndicatorVisible || !this.fuelIndicatorSprites.length) return;
+        
+        // Проверяем, что текущий спрайт загружен
+        const currentSprite = this.fuelIndicatorSprites[this.fuelIndicatorCurrentFrame];
+        if (!currentSprite || !currentSprite.loaded) return;
+        
+        // Позиция индикатора: левый нижний угол касается правого верхнего угла машины
+        const indicatorX = this.player.x + this.player.width + CONFIG.FUEL_INDICATOR.OFFSET_X;
+        const indicatorY = this.player.y + CONFIG.FUEL_INDICATOR.OFFSET_Y;
+        
+        // Отрисовываем текущий кадр анимации
+        currentSprite.draw(this.ctx, indicatorX, indicatorY);
     }
     
     gameLoop(currentTime = 0) {

@@ -27,7 +27,8 @@ export const CONFIG = {
         COLLISION_WIDTH: 72, // Ширина коллизионной модели (на 10% меньше)
         COLLISION_HEIGHT: 120, // Высота коллизионной модели (без изменений)
         COLOR: '#e74c3c',
-        SPEED_MULTIPLIER: 0.6 // относительно скорости игры
+        SPEED_MULTIPLIER: 0.6, // относительно скорости игры
+        DIRECTION: 'down' // 'down' - движение вниз, 'up' - движение вверх
     },
     
     // Дорога
@@ -51,7 +52,16 @@ export const CONFIG = {
     
     // Анимация
     ANIMATION: {
-        FADE_DURATION: 200 // мс
+        FADE_DURATION: 200, // мс
+        FUEL_INDICATOR_SWITCH_INTERVAL: 600 // мс
+    },
+    
+    // Индикатор топлива
+    FUEL_INDICATOR: {
+        WIDTH: 80,  // Увеличиваем размер для лучшей видимости
+        HEIGHT: 67, // Сохраняем соотношение сторон 270:226 ≈ 1.19
+        OFFSET_X: -10, // Смещаем влево, чтобы левый край касался правого края машины
+        OFFSET_Y: -67 // Смещаем вверх, чтобы нижний край касался верхнего края машины
     },
     
     // Высокое разрешение
@@ -70,6 +80,10 @@ export const CONFIG = {
             'assets/images/obstacle-car4.png',
             'assets/images/obstacle-car5.png'
         ],
-        ROAD_TEXTURE: 'assets/images/road-texture.png'
+        ROAD_TEXTURE: 'assets/images/road-texture.png',
+        FUEL_CHECK: [
+            'assets/images/fuel-check1.png',
+            'assets/images/fuel-check2.png'
+        ]
     }
 };

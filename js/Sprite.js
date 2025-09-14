@@ -39,8 +39,23 @@ export class Sprite {
     getAssetKey() {
         // Определяем ключ ассета по пути
         if (this.imagePath.includes('player-car')) return 'playerCar';
-        if (this.imagePath.includes('obstacle-car')) return 'obstacleCar';
+        if (this.imagePath.includes('obstacle-car')) {
+            // Извлекаем номер из пути (например, obstacle-car1.png -> 0)
+            const match = this.imagePath.match(/obstacle-car(\d+)\.png/);
+            if (match) {
+                return `obstacleCar${parseInt(match[1]) - 1}`;
+            }
+            return 'obstacleCar0';
+        }
         if (this.imagePath.includes('road-texture')) return 'roadTexture';
+        if (this.imagePath.includes('fuel-check')) {
+            // Извлекаем номер из пути (например, fuel-check1.png -> 0)
+            const match = this.imagePath.match(/fuel-check(\d+)\.png/);
+            if (match) {
+                return `fuelCheck${parseInt(match[1]) - 1}`;
+            }
+            return 'fuelCheck0';
+        }
         return 'unknown';
     }
     

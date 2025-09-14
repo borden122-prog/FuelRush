@@ -233,6 +233,56 @@ body {
     background: #e0e0e0;
 }
 
+/* Поп-ап "закончился бензин" */
+.fuel-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    text-align: center;
+    display: none;
+    pointer-events: all;
+    font-family: 'Tiny5', monospace;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.fuel-empty h2 {
+    color: white;
+    margin-bottom: 25px;
+    font-size: 96px;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    display: block;
+}
+
+#refuelBtn {
+    background: white;
+    color: black;
+    border: none;
+    padding: 44px 90px;
+    font-size: 54px;
+    font-family: 'Tiny5', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#refuelBtn:hover {
+    background: #f0f0f0;
+}
+
+#refuelBtn:active {
+    background: #e0e0e0;
+}
+
 
 /* Мобильная адаптация */
 @media (max-width: 768px) {
@@ -277,6 +327,15 @@ body {
         font-size: 32px;
     }
     
+    .fuel-empty h2 {
+        font-size: 48px;
+    }
+    
+    #refuelBtn {
+        padding: 24px 48px;
+        font-size: 32px;
+    }
+    
 }
 
 @media (max-width: 480px) {
@@ -310,6 +369,15 @@ body {
     }
     
     #startBtn {
+        padding: 20px 40px;
+        font-size: 28px;
+    }
+    
+    .fuel-empty h2 {
+        font-size: 40px;
+    }
+    
+    #refuelBtn {
         padding: 20px 40px;
         font-size: 28px;
     }

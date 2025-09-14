@@ -41,10 +41,10 @@ export class Player {
     }
     
     // Обновление позиции и угла
-    update(deltaTime) {
-        // Плавный поворот
+    update(deltaTime, turnSpeedMultiplier = 1) {
+        // Плавный поворот с учетом множителя скорости поворота
         const angleDiff = this.targetAngle - this.angle;
-        this.angle += angleDiff * CONFIG.PLAYER.TURN_SPEED * deltaTime;
+        this.angle += angleDiff * CONFIG.PLAYER.TURN_SPEED * deltaTime * turnSpeedMultiplier;
         
         // Плавное движение
         if (this.moveDirection !== 0) {

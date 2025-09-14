@@ -64,9 +64,20 @@ export class ObstacleManager {
             const lane = availableLanes[randomIndex];
             
             const obstacle = this.obstaclePool.get();
+            
+            // Определяем начальную позицию Y в зависимости от направления движения
+            let startY;
+            if (CONFIG.OBSTACLE.DIRECTION === 'up') {
+                // При движении вверх спавним внизу экрана
+                startY = this.canvasHeight + CONFIG.OBSTACLE.HEIGHT;
+            } else {
+                // При движении вниз спавним сверху экрана
+                startY = -CONFIG.OBSTACLE.HEIGHT;
+            }
+            
             obstacle.init(
                 this.lanePositions[lane] - CONFIG.OBSTACLE.WIDTH / 2,
-                -CONFIG.OBSTACLE.HEIGHT,
+                startY,
                 gameSpeed
             );
         }
@@ -108,22 +119,43 @@ export class ObstacleManager {
     }
     
     // Обновление всех препятствий
-    update(deltaTime, gameSpeed) {
+    update(deltaTime, gameSpeed, obstacleSpeed = null, playerY = null, isSlowingDown = false, allowSpawning = true) {
         const activeObstacles = this.obstaclePool.getActive();
         
         // Обновляем позиции препятствий и удаляем вышедшие за экран
         for (let i = activeObstacles.length - 1; i >= 0; i--) {
             const obstacle = activeObstacles[i];
-            obstacle.update(deltaTime);
             
-            if (obstacle.isOffScreen(this.canvasHeight)) {
+            // Препятствия используют переданную скорость (может отличаться от скорости игрока)
+            let effectiveSpeed = obstacleSpeed !== null ? obstacleSpeed : gameSpeed;
+            
+            // Определяем направление движения для каждого препятствия индивидуально
+            let obstacleDirection = CONFIG.OBSTACLE.DIRECTION;
+            
+            // Если игрок замедляется, определяем направление в зависимости от позиции препятствия
+            if (isSlowingDown && playerY !== null) {
+                const obstacleCenter = obstacle.y + obstacle.height / 2;
+                const playerCenter = playerY + CONFIG.PLAYER.HEIGHT / 2;
+                
+                // Если препятствие сзади игрока (выше по Y), оно продолжает двигаться вниз
+                if (obstacleCenter > playerCenter) {
+                    obstacleDirection = 'down';
+                } else {
+                    // Если препятствие впереди игрока (ниже по Y), оно двигается вверх
+                    obstacleDirection = 'up';
+                }
+            }
+            
+            obstacle.update(deltaTime, effectiveSpeed, obstacleDirection);
+            
+            if (obstacle.isOffScreen(this.canvasHeight, obstacleDirection)) {
                 this.obstaclePool.release(obstacle);
             }
         }
         
-        // Спавним новые препятствия
-        if (Math.random() < CONFIG.GAME.OBSTACLE_SPAWN_RATE) {
-            this.spawnObstacle(gameSpeed);
+        // Спавним новые препятствия только если разрешено
+        if (allowSpawning && Math.random() < CONFIG.GAME.OBSTACLE_SPAWN_RATE) {
+            this.spawnObstacle(obstacleSpeed !== null ? obstacleSpeed : gameSpeed);
         }
     }
     

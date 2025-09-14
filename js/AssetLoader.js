@@ -123,6 +123,11 @@ export class AssetLoader {
         
         loader.addAsset('roadTexture', CONFIG.SPRITES.ROAD_TEXTURE);
         
+        // Добавляем изображения индикатора топлива
+        CONFIG.SPRITES.FUEL_CHECK.forEach((fuelPath, index) => {
+            loader.addAsset(`fuelCheck${index}`, fuelPath);
+        });
+        
         return loader;
     }
 }

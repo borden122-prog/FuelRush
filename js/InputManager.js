@@ -3,6 +3,7 @@ export class InputManager {
         this.canvas = canvas;
         this.player = player;
         this.gameRunning = false;
+        this.fuelScreenVisible = false;
         // Используем логическую ширину canvas (CSS пиксели), а не физическую
         this.canvasWidth = canvas.clientWidth || canvas.offsetWidth;
         
@@ -23,7 +24,7 @@ export class InputManager {
     
     handleInput(e) {
         e.preventDefault();
-        if (!this.gameRunning) return;
+        if (!this.gameRunning || this.fuelScreenVisible) return;
         
         const inputX = this.getInputX(e);
         const screenCenter = this.canvasWidth / 2;
@@ -37,7 +38,7 @@ export class InputManager {
     
     handleMouseMove(e) {
         e.preventDefault();
-        if (!this.gameRunning || e.buttons !== 1) return;
+        if (!this.gameRunning || e.buttons !== 1 || this.fuelScreenVisible) return;
         
         this.handleInput(e);
     }
@@ -68,6 +69,10 @@ export class InputManager {
     
     setGameRunning(running) {
         this.gameRunning = running;
+    }
+    
+    setFuelScreenVisible(visible) {
+        this.fuelScreenVisible = visible;
     }
     
     updateCanvasSize(canvasWidth) {
