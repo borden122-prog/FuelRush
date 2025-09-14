@@ -1,13 +1,41 @@
 export class Sprite {
-    constructor(imagePath, width, height) {
+    constructor(imagePath, width, height, assetLoader = null) {
         this.imagePath = imagePath;
         this.width = width;
         this.height = height;
         this.image = null;
         this.loaded = false;
         this.loadError = false;
+        this.assetLoader = assetLoader;
         
-        this.loadImage();
+        // Если есть загрузчик ассетов, используем его
+        if (this.assetLoader) {
+            this.loadFromAssetLoader();
+        } else {
+            this.loadImage();
+        }
+    }
+    
+    loadFromAssetLoader() {
+        // Получаем ассет из загрузчика
+        const assetKey = this.getAssetKey();
+        this.image = this.assetLoader.getAsset(assetKey);
+        
+        if (this.image) {
+            this.loaded = true;
+            console.log(`Sprite loaded from asset loader: ${this.imagePath}`);
+        } else {
+            this.loadError = true;
+            console.error(`Asset not found in loader: ${assetKey}`);
+        }
+    }
+    
+    getAssetKey() {
+        // Определяем ключ ассета по пути
+        if (this.imagePath.includes('player-car')) return 'playerCar';
+        if (this.imagePath.includes('obstacle-car')) return 'obstacleCar';
+        if (this.imagePath.includes('road-texture')) return 'roadTexture';
+        return 'unknown';
     }
     
     loadImage() {

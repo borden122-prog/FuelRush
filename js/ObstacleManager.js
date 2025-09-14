@@ -3,16 +3,17 @@ import { Obstacle } from './Obstacle.js';
 import { ObjectPool } from './ObjectPool.js';
 
 export class ObstacleManager {
-    constructor(canvasWidth, canvasHeight) {
+    constructor(canvasWidth, canvasHeight, assetLoader = null) {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.lanes = CONFIG.ROAD.LANES;
         this.laneWidth = canvasWidth / this.lanes;
         this.lanePositions = [];
+        this.assetLoader = assetLoader;
         
         // Создаем пул объектов для препятствий
         this.obstaclePool = new ObjectPool(
-            () => new Obstacle(0, 0, 0), // createFn
+            () => new Obstacle(0, 0, 0, this.assetLoader), // createFn
             (obstacle) => obstacle.reset(), // resetFn
             20 // начальный размер пула
         );

@@ -1,14 +1,15 @@
 import { CONFIG } from './config.js';
 
 export class Road {
-    constructor(canvasWidth, canvasHeight) {
+    constructor(canvasWidth, canvasHeight, assetLoader = null) {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.lanes = CONFIG.ROAD.LANES;
         this.laneWidth = canvasWidth / this.lanes;
+        this.assetLoader = assetLoader;
         
         // Загрузка текстуры дороги
-        this.roadTexture = new Image();
+        this.roadTexture = null;
         this.textureLoaded = false;
         this.textureLoadError = false;
         this.loadRoadTexture();
@@ -23,20 +24,37 @@ export class Road {
     }
     
     loadRoadTexture() {
-        this.roadTexture.onload = () => {
-            this.textureLoaded = true;
-            // Вычисляем высоту текстуры с сохранением пропорций
-            this.textureHeight = (this.roadTexture.height * this.canvasWidth) / this.roadTexture.width;
-            this.lastCanvasWidth = this.canvasWidth;
-            console.log(`Road texture loaded: ${this.roadTexture.width}x${this.roadTexture.height}, scaled height: ${this.textureHeight}`);
-        };
-        this.roadTexture.onerror = () => {
-            this.textureLoadError = true;
-            console.error(`Failed to load road texture: ${CONFIG.SPRITES.ROAD_TEXTURE}`);
-        };
-        // Устанавливаем crossOrigin для избежания проблем с CORS
-        this.roadTexture.crossOrigin = 'anonymous';
-        this.roadTexture.src = CONFIG.SPRITES.ROAD_TEXTURE;
+        if (this.assetLoader) {
+            // Используем загруженную текстуру из загрузчика ассетов
+            this.roadTexture = this.assetLoader.getAsset('roadTexture');
+            if (this.roadTexture) {
+                this.textureLoaded = true;
+                // Вычисляем высоту текстуры с сохранением пропорций
+                this.textureHeight = (this.roadTexture.height * this.canvasWidth) / this.roadTexture.width;
+                this.lastCanvasWidth = this.canvasWidth;
+                console.log(`Road texture loaded from asset loader: ${this.roadTexture.width}x${this.roadTexture.height}, scaled height: ${this.textureHeight}`);
+            } else {
+                this.textureLoadError = true;
+                console.error(`Road texture not found in asset loader`);
+            }
+        } else {
+            // Fallback: загружаем текстуру напрямую
+            this.roadTexture = new Image();
+            this.roadTexture.onload = () => {
+                this.textureLoaded = true;
+                // Вычисляем высоту текстуры с сохранением пропорций
+                this.textureHeight = (this.roadTexture.height * this.canvasWidth) / this.roadTexture.width;
+                this.lastCanvasWidth = this.canvasWidth;
+                console.log(`Road texture loaded: ${this.roadTexture.width}x${this.roadTexture.height}, scaled height: ${this.textureHeight}`);
+            };
+            this.roadTexture.onerror = () => {
+                this.textureLoadError = true;
+                console.error(`Failed to load road texture: ${CONFIG.SPRITES.ROAD_TEXTURE}`);
+            };
+            // Устанавливаем crossOrigin для избежания проблем с CORS
+            this.roadTexture.crossOrigin = 'anonymous';
+            this.roadTexture.src = CONFIG.SPRITES.ROAD_TEXTURE;
+        }
     }
     
     // Проверка готовности текстуры

@@ -2,7 +2,7 @@ import { CONFIG } from './config.js';
 import { Sprite } from './Sprite.js';
 
 export class Player {
-    constructor(canvasWidth, canvasHeight) {
+    constructor(canvasWidth, canvasHeight, assetLoader = null) {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         
@@ -20,7 +20,7 @@ export class Player {
         
         // Внешний вид
         this.color = CONFIG.PLAYER.COLOR;
-        this.sprite = new Sprite(CONFIG.SPRITES.PLAYER_CAR, this.width, this.height);
+        this.sprite = new Sprite(CONFIG.SPRITES.PLAYER_CAR, this.width, this.height, assetLoader);
     }
     
     // Движение влево

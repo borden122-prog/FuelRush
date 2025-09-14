@@ -2,14 +2,14 @@ import { CONFIG } from './config.js';
 import { Sprite } from './Sprite.js';
 
 export class Obstacle {
-    constructor(x = 0, y = 0, gameSpeed = 0) {
+    constructor(x = 0, y = 0, gameSpeed = 0, assetLoader = null) {
         this.x = x;
         this.y = y;
         this.width = CONFIG.OBSTACLE.WIDTH;
         this.height = CONFIG.OBSTACLE.HEIGHT;
         this.color = CONFIG.OBSTACLE.COLOR;
         this.speed = gameSpeed * CONFIG.OBSTACLE.SPEED_MULTIPLIER;
-        this.sprite = new Sprite(CONFIG.SPRITES.OBSTACLE_CAR, this.width, this.height);
+        this.sprite = new Sprite(CONFIG.SPRITES.OBSTACLE_CAR, this.width, this.height, assetLoader);
     }
     
     // Инициализация объекта из пула

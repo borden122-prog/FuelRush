@@ -4,6 +4,7 @@ import { ObstacleManager } from './ObstacleManager.js';
 import { Road } from './Road.js';
 import { InputManager } from './InputManager.js';
 import { DisplayManager } from './DisplayManager.js';
+import { AssetLoader } from './AssetLoader.js';
 
 export class Game {
     constructor() {
@@ -17,6 +18,9 @@ export class Game {
         this.loadingScreenElement = document.getElementById('loadingScreen');
         this.startScreenElement = document.getElementById('startScreen');
         this.startBtn = document.getElementById('startBtn');
+        
+        // Загрузчик ассетов
+        this.assetLoader = null;
         
         // Размеры canvas
         this.canvasWidth = 0;
@@ -90,9 +94,9 @@ export class Game {
     }
     
     setupGameObjects() {
-        this.player = new Player(this.canvasWidth, this.canvasHeight);
-        this.obstacleManager = new ObstacleManager(this.canvasWidth, this.canvasHeight);
-        this.road = new Road(this.canvasWidth, this.canvasHeight);
+        this.player = new Player(this.canvasWidth, this.canvasHeight, this.assetLoader);
+        this.obstacleManager = new ObstacleManager(this.canvasWidth, this.canvasHeight, this.assetLoader);
+        this.road = new Road(this.canvasWidth, this.canvasHeight, this.assetLoader);
         this.inputManager = new InputManager(this.canvas, this.player);
     }
     
@@ -109,12 +113,43 @@ export class Game {
     }
     
     loadAssets() {
-        // Симулируем загрузку ассетов
-        // В реальной игре здесь бы загружались изображения, звуки и т.д.
+        // Запоминаем время начала загрузки
+        this.loadStartTime = performance.now();
+        this.minLoadTime = 1000; // Минимум 1 секунда загрузки
+        
+        // Создаем загрузчик ассетов
+        this.assetLoader = AssetLoader.loadGameAssets();
+        
+        // Настраиваем callback для прогресса загрузки
+        this.assetLoader.onProgress = (loaded, total) => {
+            const progress = (loaded / total) * 100;
+            console.log(`Loading progress: ${progress.toFixed(1)}%`);
+        };
+        
+        // Загружаем все ассеты
+        this.assetLoader.loadAll()
+            .then(() => {
+                console.log('All assets loaded successfully!');
+                this.onAssetsLoaded();
+            })
+            .catch((error) => {
+                console.error('Failed to load assets:', error);
+                // Показываем стартовый экран даже при ошибке загрузки
+                this.onAssetsLoaded();
+            });
+    }
+    
+    onAssetsLoaded() {
+        const elapsedTime = performance.now() - this.loadStartTime;
+        const remainingTime = Math.max(0, this.minLoadTime - elapsedTime);
+        
+        console.log(`Assets loaded in ${elapsedTime.toFixed(0)}ms, waiting ${remainingTime.toFixed(0)}ms more...`);
+        
+        // Ждем оставшееся время до минимума
         setTimeout(() => {
             this.assetsLoaded = true;
             this.showStartScreen();
-        }, 2000); // 2 секунды загрузки
+        }, remainingTime);
     }
     
     showStartScreen() {
