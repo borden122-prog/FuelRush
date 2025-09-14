@@ -14,6 +14,9 @@ export class Game {
         this.finalScoreElement = document.getElementById('finalScore');
         this.restartBtn = document.getElementById('restartBtn');
         this.screenFadeElement = document.getElementById('screenFade');
+        this.loadingScreenElement = document.getElementById('loadingScreen');
+        this.startScreenElement = document.getElementById('startScreen');
+        this.startBtn = document.getElementById('startBtn');
         
         // Размеры canvas
         this.canvasWidth = 0;
@@ -27,6 +30,7 @@ export class Game {
         this.score = 0;
         this.gameSpeed = CONFIG.GAME.BASE_SPEED;
         this.restartFrameCount = 0;
+        this.assetsLoaded = false;
         
         // Игровые объекты
         this.player = null;
@@ -37,6 +41,8 @@ export class Game {
         // Анимация
         this.animationId = null;
         this.lastTime = 0;
+        this.startScreenAnimationId = null;
+        this.startScreenLastTime = 0;
         
         // Оптимизация отрисовки
         this.needsRedraw = true;
@@ -47,9 +53,8 @@ export class Game {
     
     init() {
         this.setupCanvas();
-        this.setupGameObjects();
         this.setupEventListeners();
-        this.startGame();
+        this.loadAssets();
     }
     
     setupCanvas() {
@@ -96,6 +101,72 @@ export class Game {
         this.restartBtn.addEventListener('click', () => {
             this.restartGame();
         });
+        
+        // Кнопка старта
+        this.startBtn.addEventListener('click', () => {
+            this.startGame();
+        });
+    }
+    
+    loadAssets() {
+        // Симулируем загрузку ассетов
+        // В реальной игре здесь бы загружались изображения, звуки и т.д.
+        setTimeout(() => {
+            this.assetsLoaded = true;
+            this.showStartScreen();
+        }, 2000); // 2 секунды загрузки
+    }
+    
+    showStartScreen() {
+        // Скрываем экран загрузки
+        this.loadingScreenElement.style.display = 'none';
+        
+        // Инициализируем игровые объекты для фоновой анимации
+        this.setupGameObjects();
+        
+        // Показываем стартовый экран
+        this.startScreenElement.style.display = 'flex';
+        
+        // Запускаем фоновую анимацию
+        this.startBackgroundAnimation();
+    }
+    
+    startBackgroundAnimation() {
+        const animate = (currentTime = 0) => {
+            if (this.startScreenElement.style.display === 'none') {
+                // Останавливаем анимацию, если стартовый экран скрыт
+                if (this.startScreenAnimationId) {
+                    cancelAnimationFrame(this.startScreenAnimationId);
+                    this.startScreenAnimationId = null;
+                }
+                return;
+            }
+            
+            const deltaTime = currentTime - this.startScreenLastTime;
+            this.startScreenLastTime = currentTime;
+            
+            // Обновляем только дорогу для фоновой анимации
+            this.road.update(deltaTime, CONFIG.GAME.BASE_SPEED * 0.5); // Медленная анимация
+            
+            // Отрисовываем фон
+            this.drawBackground();
+            
+            this.startScreenAnimationId = requestAnimationFrame(animate);
+        };
+        
+        this.startScreenLastTime = 0;
+        animate();
+    }
+    
+    drawBackground() {
+        // Очищаем canvas
+        this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+        
+        // Рисуем дорогу
+        this.road.draw(this.ctx, CONFIG.GAME.BASE_SPEED * 0.5);
+        
+        // Рисуем игрока в центре
+        this.player.draw(this.ctx);
     }
     
     updateScore(deltaTime) {
@@ -160,10 +231,8 @@ export class Game {
         this.scoreElement.textContent = '0';
         this.scoreElement.innerHTML = '0';
         
+        // Сразу запускаем игру
         setTimeout(() => {
-            this.scoreElement.textContent = '0';
-            this.scoreElement.innerHTML = '0';
-            
             this.gameRunning = true;
             this.inputManager.setGameRunning(true);
             this.needsRedraw = true;
@@ -172,6 +241,16 @@ export class Game {
     }
     
     startGame() {
+        // Останавливаем фоновую анимацию
+        if (this.startScreenAnimationId) {
+            cancelAnimationFrame(this.startScreenAnimationId);
+            this.startScreenAnimationId = null;
+        }
+        
+        // Скрываем стартовый экран
+        this.startScreenElement.style.display = 'none';
+        
+        // Игровые объекты уже инициализированы в showStartScreen
         this.gameRunning = true;
         this.inputManager.setGameRunning(true);
         this.gameLoop();

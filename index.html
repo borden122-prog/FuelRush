@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Fuel Rush - Мобильная Гонка</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +17,19 @@
         <div class="ui-overlay">
             <div class="score">Метры: <span id="score">0</span></div>
             <div class="screen-fade" id="screenFade"></div>
+            
+            <!-- Экран загрузки -->
+            <div class="loading-screen" id="loadingScreen">
+                <h1>Fuel Rush</h1>
+                <p class="loading-text">Загрузка</p>
+            </div>
+            
+            <!-- Стартовый экран -->
+            <div class="start-screen" id="startScreen">
+                <h2>Fuel Rush</h2>
+                <button id="startBtn">Играть</button>
+            </div>
+            
             <div class="game-over" id="gameOver">
                 <h2>Игра окончена</h2>
                 <p>Вы проехали <span id="finalScore">0</span> метров</p>
