@@ -11,6 +11,20 @@ export class Obstacle {
         this.speed = gameSpeed * CONFIG.OBSTACLE.SPEED_MULTIPLIER;
         this.assetLoader = assetLoader;
         
+        // Система тряски
+        this.isShaking = false;
+        this.shakeIntensity = 0;
+        this.shakeDuration = 0;
+        this.shakeStartTime = 0;
+        this.shakeOffsetX = 0;
+        this.shakeOffsetY = 0;
+        
+        // Состояние остановки движения
+        this.isMovementStopped = false;
+        
+        // Флаг столкнувшегося препятствия
+        this.isCollisionObstacle = false;
+        
         // Получаем случайное изображение препятствия
         const randomCarImage = assetLoader ? assetLoader.getRandomObstacleCar() : null;
         this.sprite = new Sprite(randomCarImage, this.width, this.height, assetLoader);
@@ -34,10 +48,29 @@ export class Obstacle {
         this.x = 0;
         this.y = 0;
         this.speed = 0;
+        
+        // Сбрасываем тряску
+        this.isShaking = false;
+        this.shakeOffsetX = 0;
+        this.shakeOffsetY = 0;
+        
+        // Сбрасываем остановку движения
+        this.isMovementStopped = false;
+        
+        // Сбрасываем флаг столкнувшегося препятствия
+        this.isCollisionObstacle = false;
     }
     
     // Обновление позиции
     update(deltaTime, newSpeed = null, direction = null) {
+        // Обновляем тряску
+        this.updateShake(deltaTime);
+        
+        // Если движение остановлено, не обновляем позицию
+        if (this.isMovementStopped) {
+            return;
+        }
+        
         // Если передана новая скорость, используем её, иначе используем сохраненную
         const effectiveSpeed = newSpeed !== null ? newSpeed * CONFIG.OBSTACLE.SPEED_MULTIPLIER : this.speed;
         
@@ -53,8 +86,10 @@ export class Obstacle {
     
     // Отрисовка препятствия
     draw(ctx) {
-        // Используем спрайт для отрисовки
-        this.sprite.draw(ctx, this.x, this.y);
+        // Используем спрайт для отрисовки с учетом тряски
+        const drawX = this.x + this.shakeOffsetX;
+        const drawY = this.y + this.shakeOffsetY;
+        this.sprite.draw(ctx, drawX, drawY);
     }
     
     // Проверка, вышло ли препятствие за экран
@@ -83,5 +118,42 @@ export class Obstacle {
                playerCollisionX + CONFIG.PLAYER.COLLISION_WIDTH > obstacleCollisionX &&
                playerCollisionY < obstacleCollisionY + CONFIG.OBSTACLE.COLLISION_HEIGHT &&
                playerCollisionY + CONFIG.PLAYER.COLLISION_HEIGHT > obstacleCollisionY;
+    }
+    
+    // Запуск тряски
+    startShake(intensity = 5, duration = 600) {
+        this.isShaking = true;
+        this.shakeIntensity = intensity;
+        this.shakeDuration = duration;
+        this.shakeStartTime = performance.now();
+    }
+    
+    // Обновление тряски
+    updateShake(deltaTime) {
+        if (!this.isShaking) return;
+        
+        const currentTime = performance.now();
+        const elapsed = currentTime - this.shakeStartTime;
+        const progress = elapsed / this.shakeDuration;
+        
+        if (progress >= 1) {
+            // Тряска завершена
+            this.isShaking = false;
+            this.shakeOffsetX = 0;
+            this.shakeOffsetY = 0;
+            return;
+        }
+        
+        // Уменьшаем интенсивность тряски со временем
+        const currentIntensity = this.shakeIntensity * (1 - progress);
+        
+        // Генерируем случайные смещения
+        this.shakeOffsetX = (Math.random() - 0.5) * 2 * currentIntensity;
+        this.shakeOffsetY = (Math.random() - 0.5) * 2 * currentIntensity;
+    }
+    
+    // Остановка движения (при столкновении)
+    stopMovement() {
+        this.isMovementStopped = true;
     }
 }

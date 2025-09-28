@@ -113,8 +113,10 @@ export class AssetLoader {
     static loadGameAssets() {
         const loader = new AssetLoader();
         
-        // Добавляем все ассеты из конфигурации
-        loader.addAsset('playerCar', CONFIG.SPRITES.PLAYER_CAR);
+        // Добавляем все типы машин игрока
+        Object.entries(CONFIG.SPRITES.PLAYER_CARS).forEach(([carType, carPath]) => {
+            loader.addAsset(`playerCar_${carType}`, carPath);
+        });
         
         // Добавляем все изображения препятствий
         CONFIG.SPRITES.OBSTACLE_CARS.forEach((carPath, index) => {

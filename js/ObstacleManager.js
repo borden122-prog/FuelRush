@@ -119,7 +119,7 @@ export class ObstacleManager {
     }
     
     // Обновление всех препятствий
-    update(deltaTime, gameSpeed, obstacleSpeed = null, playerY = null, isSlowingDown = false, allowSpawning = true) {
+    update(deltaTime, gameSpeed, obstacleSpeed = null, playerY = null, isSlowingDown = false, allowSpawning = true, obstaclesReversed = false) {
         const activeObstacles = this.obstaclePool.getActive();
         
         // Обновляем позиции препятствий и удаляем вышедшие за экран
@@ -132,8 +132,12 @@ export class ObstacleManager {
             // Определяем направление движения для каждого препятствия индивидуально
             let obstacleDirection = CONFIG.OBSTACLE.DIRECTION;
             
+            // Если препятствия развернуты после столкновения, все двигаются вверх
+            if (obstaclesReversed) {
+                obstacleDirection = 'up';
+            }
             // Если игрок замедляется, определяем направление в зависимости от позиции препятствия
-            if (isSlowingDown && playerY !== null) {
+            else if (isSlowingDown && playerY !== null) {
                 const obstacleCenter = obstacle.y + obstacle.height / 2;
                 const playerCenter = playerY + CONFIG.PLAYER.HEIGHT / 2;
                 
@@ -173,10 +177,28 @@ export class ObstacleManager {
         const activeObstacles = this.obstaclePool.getActive();
         for (let obstacle of activeObstacles) {
             if (obstacle.checkCollision(player)) {
+                // Запускаем тряску для препятствия при столкновении
+                obstacle.startShake(CONFIG.SHAKE.COLLISION_INTENSITY, CONFIG.SHAKE.COLLISION_DURATION);
+                // Останавливаем движение препятствия
+                obstacle.stopMovement();
+                // Помечаем это препятствие как столкнувшееся
+                obstacle.isCollisionObstacle = true;
                 return true;
             }
         }
         return false;
+    }
+    
+    // Разворот всех препятствий (при столкновении)
+    reverseAllObstacles() {
+        const activeObstacles = this.obstaclePool.getActive();
+        for (let obstacle of activeObstacles) {
+            // Не применяем тряску к столкнувшемуся препятствию, у него уже есть своя тряска
+            if (!obstacle.isCollisionObstacle) {
+                // Запускаем тряску для остальных препятствий
+                obstacle.startShake(CONFIG.SHAKE.OTHER_CARS_INTENSITY, CONFIG.SHAKE.OTHER_CARS_DURATION);
+            }
+        }
     }
     
     // Очистка всех препятствий

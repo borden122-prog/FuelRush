@@ -83,6 +83,39 @@ body {
     opacity: 1;
 }
 
+/* Экран для десктопных устройств */
+.desktop-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    font-family: 'Tiny5', monospace;
+    z-index: 25;
+}
+
+.desktop-screen h1 {
+    font-size: 96px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.desktop-message {
+    font-size: 60px;
+    color: white;
+    max-width: 800px;
+    line-height: 1.2;
+    padding: 0 20px;
+}
+
 /* Экран загрузки */
 .loading-screen {
     position: absolute;
@@ -148,7 +181,7 @@ body {
 .start-screen h2 {
     font-size: 96px;
     font-weight: bold;
-    margin-bottom: 50px;
+    margin-bottom: 28px;
     color: white;
 }
 
@@ -174,6 +207,61 @@ body {
 #startBtn:active {
     background: #e0e0e0;
 }
+
+#startBtn:disabled {
+    background: #666;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Выбор машины */
+.car-selection {
+    margin-bottom: 40px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.car-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.car-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.car-tile {
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+
+.car-tile.selected {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
+}
+
+.car-tile img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: brightness(1.2);
+}
+
 
 .game-over {
     position: absolute;
@@ -286,6 +374,15 @@ body {
 
 /* Мобильная адаптация */
 @media (max-width: 768px) {
+    .desktop-screen h1 {
+        font-size: 48px;
+    }
+    
+    .desktop-message {
+        font-size: 30px;
+        max-width: 90%;
+    }
+    
     .score {
         font-size: 24px; /* Увеличено на 20% от 20px */
         top: 10px;
@@ -327,6 +424,26 @@ body {
         font-size: 32px;
     }
     
+    .car-grid {
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .car-row {
+        gap: 16px;
+    }
+    
+    .car-tile {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .car-tile img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    
     .fuel-empty h2 {
         font-size: 48px;
     }
@@ -339,6 +456,15 @@ body {
 }
 
 @media (max-width: 480px) {
+    .desktop-screen h1 {
+        font-size: 40px;
+    }
+    
+    .desktop-message {
+        font-size: 28px;
+        max-width: 95%;
+    }
+    
     .score {
         font-size: 18px;
     }
@@ -373,6 +499,26 @@ body {
         font-size: 28px;
     }
     
+    .car-grid {
+        gap: 16px;
+        margin-bottom: 15px;
+    }
+    
+    .car-row {
+        gap: 16px;
+    }
+    
+    .car-tile {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .car-tile img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    
     .fuel-empty h2 {
         font-size: 40px;
     }
@@ -382,4 +528,79 @@ body {
         font-size: 28px;
     }
     
+}
+
+/* Стили для поп-апа приостановки игры */
+.game-paused {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    text-align: center;
+    display: none;
+    pointer-events: all;
+    font-family: 'Tiny5', monospace;
+    width: 100%;
+    max-width: 600px;
+    z-index: 1000;
+}
+
+.game-paused h2 {
+    color: white;
+    margin-bottom: 25px;
+    font-size: 96px;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    display: block;
+}
+
+
+#resumeBtn {
+    background: white;
+    color: black;
+    border: none;
+    padding: 44px 90px;
+    font-size: 54px;
+    font-family: 'Tiny5', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+}
+
+#resumeBtn:hover {
+    background: #f0f0f0;
+}
+
+#resumeBtn:active {
+    background: #e0e0e0;
+}
+
+/* Адаптивные стили для поп-апа приостановки */
+@media (max-width: 768px) {
+    .game-paused h2 {
+        font-size: 48px;
+    }
+    
+    
+    #resumeBtn {
+        padding: 24px 48px;
+        font-size: 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-paused h2 {
+        font-size: 40px;
+    }
+    
+    
+    #resumeBtn {
+        padding: 20px 40px;
+        font-size: 28px;
+    }
 }

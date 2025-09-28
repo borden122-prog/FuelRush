@@ -25,6 +25,7 @@ export class Sprite {
     loadFromAssetLoader() {
         // Получаем ассет из загрузчика
         const assetKey = this.getAssetKey();
+        console.log(`Loading sprite: ${this.imagePath}, asset key: ${assetKey}`);
         this.image = this.assetLoader.getAsset(assetKey);
         
         if (this.image) {
@@ -32,13 +33,21 @@ export class Sprite {
             console.log(`Sprite loaded from asset loader: ${this.imagePath}`);
         } else {
             this.loadError = true;
-            console.error(`Asset not found in loader: ${assetKey}`);
+            console.error(`Asset not found in loader: ${assetKey} for path: ${this.imagePath}`);
         }
     }
     
     getAssetKey() {
         // Определяем ключ ассета по пути
         if (this.imagePath.includes('player-car')) return 'playerCar';
+        
+        // Обработка новых типов машин игрока
+        if (this.imagePath.includes('sedan.png')) return 'playerCar_sedan';
+        if (this.imagePath.includes('coupe.png')) return 'playerCar_coupe';
+        if (this.imagePath.includes('van.png')) return 'playerCar_van';
+        if (this.imagePath.includes('suv.png')) return 'playerCar_suv';
+        if (this.imagePath.includes('convertible.png')) return 'playerCar_convertible';
+        
         if (this.imagePath.includes('obstacle-car')) {
             // Извлекаем номер из пути (например, obstacle-car1.png -> 0)
             const match = this.imagePath.match(/obstacle-car(\d+)\.png/);

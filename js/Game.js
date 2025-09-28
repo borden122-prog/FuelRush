@@ -21,6 +21,10 @@ export class Game {
         this.startBtn = document.getElementById('startBtn');
         this.fuelEmptyElement = document.getElementById('fuelEmpty');
         this.refuelBtn = document.getElementById('refuelBtn');
+        this.gamePausedElement = document.getElementById('gamePaused');
+        this.resumeBtn = document.getElementById('resumeBtn');
+        this.carGridElement = document.getElementById('carGrid');
+        this.desktopScreenElement = document.getElementById('desktopScreen');
         
         // Загрузчик ассетов
         this.assetLoader = null;
@@ -38,6 +42,7 @@ export class Game {
         this.gameSpeed = CONFIG.GAME.BASE_SPEED;
         this.restartFrameCount = 0;
         this.assetsLoaded = false;
+        this.selectedCarType = CONFIG.CAR_SELECTION.DEFAULT_CAR;
         
         // Состояние события "закончился бензин"
         this.fuelEventTriggered = false;
@@ -51,6 +56,12 @@ export class Game {
         this.isChangingDirection = false;
         this.directionChangeAnimationId = null;
         this.obstacleSpeedAtSlowDown = null;
+        
+        // Состояние столкновения
+        this.isCollisionInProgress = false;
+        
+        // Состояние изменения направления препятствий
+        this.obstaclesReversed = false;
         
         // Индикатор топлива
         this.fuelIndicatorVisible = false;
@@ -74,13 +85,53 @@ export class Game {
         this.needsRedraw = true;
         this.lastScore = 0;
         
+        // Состояние видимости вкладки
+        this.isTabVisible = true;
+        this.wasGameRunningBeforeHide = false;
+        this.visibilityCheckInterval = null;
+        this.gamePausedByTab = false;
+        this.pauseStartTime = 0;
+        
+        // Состояние события заправки при паузе
+        this.wasFuelScreenVisibleBeforePause = false;
+        this.wasSlowingDownBeforePause = false;
+        this.wasFuelEventTriggeredBeforePause = false;
+        this.wasFuelEventCompletedBeforePause = false;
+        
         this.init();
     }
     
     init() {
+        // Проверяем, является ли устройство десктопным
+        if (this.isDesktopDevice()) {
+            this.showDesktopScreen();
+            return;
+        }
+        
         this.setupCanvas();
         this.setupEventListeners();
         this.loadAssets();
+    }
+    
+    isDesktopDevice() {
+        // Проверяем размер экрана и наличие touch событий
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isLargeScreen = window.innerWidth > 768 && window.innerHeight > 600;
+        
+        // Если это большой экран и нет touch событий, считаем десктопом
+        return isLargeScreen && !hasTouch;
+    }
+    
+    showDesktopScreen() {
+        // Скрываем все остальные экраны
+        this.loadingScreenElement.style.display = 'none';
+        this.startScreenElement.style.display = 'none';
+        this.gameOverElement.style.display = 'none';
+        this.fuelEmptyElement.style.display = 'none';
+        this.gamePausedElement.style.display = 'none';
+        
+        // Показываем экран для десктопных устройств
+        this.desktopScreenElement.style.display = 'flex';
     }
     
     
@@ -117,7 +168,7 @@ export class Game {
     }
     
     setupGameObjects() {
-        this.player = new Player(this.canvasWidth, this.canvasHeight, this.assetLoader);
+        this.player = new Player(this.canvasWidth, this.canvasHeight, this.assetLoader, this.selectedCarType);
         this.obstacleManager = new ObstacleManager(this.canvasWidth, this.canvasHeight, this.assetLoader);
         this.road = new Road(this.canvasWidth, this.canvasHeight, this.assetLoader);
         this.inputManager = new InputManager(this.canvas, this.player);
@@ -152,6 +203,140 @@ export class Game {
         this.refuelBtn.addEventListener('click', () => {
             this.refuel();
         });
+        
+        // Кнопка продолжения игры
+        this.resumeBtn.addEventListener('click', () => {
+            this.resumeGame();
+        });
+        
+        // Обработчики видимости вкладки
+        document.addEventListener('visibilitychange', () => {
+            this.handleVisibilityChange();
+        });
+        
+        // Дополнительные обработчики для большей совместимости
+        window.addEventListener('blur', () => {
+            console.log('Window blur event');
+            this.handleVisibilityChange();
+        });
+        
+        window.addEventListener('focus', () => {
+            console.log('Window focus event');
+            this.handleVisibilityChange();
+        });
+        
+        // Периодическая проверка видимости каждые 100ms
+        this.visibilityCheckInterval = setInterval(() => {
+            if (document.hidden && this.gameRunning) {
+                console.log('Periodic check: tab is hidden, pausing game');
+                this.handleVisibilityChange();
+            }
+        }, 100);
+    }
+    
+    handleVisibilityChange() {
+        console.log('Visibility changed, document.hidden:', document.hidden);
+        
+        if (document.hidden) {
+            // Вкладка скрыта - приостанавливаем игру
+            console.log('Tab hidden - pausing game');
+            this.isTabVisible = false;
+            this.wasGameRunningBeforeHide = this.gameRunning;
+            this.gamePausedByTab = true;
+            
+            if (this.gameRunning) {
+                this.gameRunning = false;
+                console.log('Game paused due to hidden tab');
+                // Сохраняем время начала паузы
+                this.pauseStartTime = performance.now();
+                
+                // Сохраняем состояние события заправки
+                this.wasFuelScreenVisibleBeforePause = this.isFuelScreenVisible;
+                this.wasSlowingDownBeforePause = this.isSlowingDown;
+                this.wasFuelEventTriggeredBeforePause = this.fuelEventTriggered;
+                this.wasFuelEventCompletedBeforePause = this.fuelEventTriggered && !this.isSlowingDown && !this.isFuelScreenVisible;
+                
+                // Останавливаем анимацию замедления, если она активна
+                this.stopSlowDownAnimation();
+                
+                // Показываем поп-ап приостановки
+                this.screenFadeElement.classList.add('active');
+                setTimeout(() => {
+                    this.gamePausedElement.style.display = 'block';
+                }, 300);
+            }
+            
+            // Останавливаем игровой цикл
+            if (this.animationId) {
+                cancelAnimationFrame(this.animationId);
+                this.animationId = null;
+                console.log('Animation frame cancelled');
+            }
+        } else {
+            // Вкладка видна - НЕ возобновляем игру автоматически
+            console.log('Tab visible - NOT resuming game automatically');
+            this.isTabVisible = true;
+            
+            // Игра НЕ возобновляется автоматически при возврате к вкладке
+            // Игрок должен нажать кнопку рестарта или продолжить игру вручную
+        }
+    }
+    
+    resumeGame() {
+        // Скрываем поп-ап приостановки
+        this.gamePausedElement.style.display = 'none';
+        this.screenFadeElement.classList.remove('active');
+        
+        // Сбрасываем флаги приостановки
+        this.gamePausedByTab = false;
+        this.isTabVisible = true;
+        
+        // Корректируем время последнего обновления, чтобы не начислялись очки за время паузы
+        if (this.pauseStartTime > 0) {
+            const pauseDuration = performance.now() - this.pauseStartTime;
+            this.lastTime += pauseDuration;
+            this.pauseStartTime = 0;
+            console.log('Pause duration compensated:', pauseDuration + 'ms');
+        }
+        
+        // Восстанавливаем состояние события заправки
+        if (this.wasFuelScreenVisibleBeforePause) {
+            console.log('Restoring fuel screen state');
+            this.isFuelScreenVisible = true;
+            this.inputManager.setFuelScreenVisible(true);
+            this.fuelEmptyElement.style.display = 'block';
+            this.screenFadeElement.classList.add('active');
+        } else if (this.wasSlowingDownBeforePause) {
+            console.log('Restoring slowing down state');
+            this.isSlowingDown = true;
+            this.fuelIndicatorVisible = true;
+            this.fuelIndicatorLastSwitch = performance.now();
+            // НЕ возобновляем анимацию замедления, так как она уже должна быть завершена
+            // Просто показываем индикатор топлива
+        } else if (this.wasFuelEventTriggeredBeforePause && !this.wasFuelEventCompletedBeforePause) {
+            console.log('Restoring fuel event triggered state');
+            this.fuelEventTriggered = true;
+            this.fuelIndicatorVisible = true;
+            this.fuelIndicatorLastSwitch = performance.now();
+        } else if (this.wasFuelEventCompletedBeforePause) {
+            console.log('Fuel event was already completed, not showing indicator');
+            this.fuelEventTriggered = true;
+            this.fuelIndicatorVisible = false;
+        }
+        
+        // Сбрасываем сохраненные состояния
+        this.wasFuelScreenVisibleBeforePause = false;
+        this.wasSlowingDownBeforePause = false;
+        this.wasFuelEventTriggeredBeforePause = false;
+        this.wasFuelEventCompletedBeforePause = false;
+        
+        // Возобновляем игру
+        this.gameRunning = true;
+        this.inputManager.setGameRunning(true);
+        this.needsRedraw = true;
+        
+        console.log('Game resumed by user');
+        this.gameLoop();
     }
     
     loadAssets() {
@@ -201,6 +386,9 @@ export class Game {
         // Инициализируем игровые объекты для фоновой анимации
         this.setupGameObjects();
         
+        // Создаем плитки выбора машин
+        this.createCarSelectionTiles();
+        
         // Показываем стартовый экран
         this.startScreenElement.style.display = 'flex';
         
@@ -235,6 +423,114 @@ export class Game {
         animate();
     }
     
+    createCarSelectionTiles() {
+        // Очищаем существующие плитки
+        this.carGridElement.innerHTML = '';
+        
+        // Получаем все типы машин
+        const carTypes = Object.entries(CONFIG.SPRITES.PLAYER_CARS);
+        
+        // Создаем первую строку (3 машины)
+        const firstRow = document.createElement('div');
+        firstRow.className = 'car-row';
+        
+        // Создаем вторую строку (2 машины)
+        const secondRow = document.createElement('div');
+        secondRow.className = 'car-row';
+        
+        // Создаем плитки для каждого типа машины
+        carTypes.forEach(([carType, carPath], index) => {
+            const tile = document.createElement('div');
+            tile.className = 'car-tile';
+            tile.dataset.carType = carType;
+            
+            // Создаем изображение
+            const img = document.createElement('img');
+            img.src = carPath;
+            img.alt = carType;
+            img.onload = () => {
+                // Изображение загружено
+            };
+            img.onerror = () => {
+                console.warn(`Failed to load car image: ${carPath}`);
+            };
+            
+            tile.appendChild(img);
+            
+            // Добавляем обработчик клика
+            tile.addEventListener('click', () => {
+                this.selectCar(carType);
+            });
+            
+            // Выбираем машину по умолчанию
+            if (carType === this.selectedCarType) {
+                tile.classList.add('selected');
+            }
+            
+            // Добавляем в соответствующую строку
+            if (index < 3) {
+                firstRow.appendChild(tile);
+            } else {
+                secondRow.appendChild(tile);
+            }
+        });
+        
+        // Добавляем строки в сетку
+        this.carGridElement.appendChild(firstRow);
+        this.carGridElement.appendChild(secondRow);
+        
+        // Активируем кнопку старта, если машина выбрана
+        this.updateStartButton();
+    }
+    
+    getCarDisplayName(carType) {
+        const names = {
+            sedan: 'Седан',
+            coupe: 'Купе',
+            van: 'Фургон',
+            suv: 'Внедорожник',
+            convertible: 'Кабриолет'
+        };
+        return names[carType] || carType;
+    }
+    
+    selectCar(carType) {
+        // Мгновенно обновляем визуальное выделение
+        const previousSelected = this.carGridElement.querySelector('.car-tile.selected');
+        if (previousSelected) {
+            previousSelected.classList.remove('selected');
+        }
+        
+        const newSelected = this.carGridElement.querySelector(`[data-car-type="${carType}"]`);
+        if (newSelected) {
+            newSelected.classList.add('selected');
+        }
+        
+        // Обновляем выбранный тип машины
+        this.selectedCarType = carType;
+        
+        // Активируем кнопку старта
+        this.updateStartButton();
+        
+        // Асинхронно обновляем спрайт игрока (не блокирует UI)
+        setTimeout(() => {
+            if (this.player && this.assetLoader) {
+                this.player.setCarType(carType, this.assetLoader);
+                console.log(`Player sprite updated, loaded: ${this.player.sprite.loaded}, error: ${this.player.sprite.loadError}`);
+            } else {
+                console.warn('Player or assetLoader not available for car type change');
+            }
+        }, 0);
+    }
+    
+    updateStartButton() {
+        if (this.selectedCarType) {
+            this.startBtn.disabled = false;
+        } else {
+            this.startBtn.disabled = true;
+        }
+    }
+    
     drawBackground() {
         // Очищаем canvas
         this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
@@ -247,7 +543,7 @@ export class Game {
     }
     
     updateScore(deltaTime) {
-        if (!this.gameRunning) {
+        if (!this.gameRunning || !this.isTabVisible || document.hidden || this.gamePausedByTab) {
             return;
         }
         
@@ -270,8 +566,8 @@ export class Game {
             this.needsRedraw = true;
         }
         
-        // Проверяем событие "закончился бензин"
-        if (!this.fuelEventTriggered && this.score >= this.fuelEventDistance) {
+        // Проверяем событие "закончился бензин" (только если включено в конфигурации)
+        if (CONFIG.GAME.FUEL_EVENT_ENABLED && !this.fuelEventTriggered && this.score >= this.fuelEventDistance) {
             this.triggerFuelEvent();
         }
     }
@@ -416,6 +712,32 @@ export class Game {
         this.gameSpeed = CONFIG.GAME.BASE_SPEED;
         this.restartFrameCount = 0;
         
+        // Сбрасываем состояние видимости вкладки
+        this.isTabVisible = true;
+        this.wasGameRunningBeforeHide = false;
+        this.gamePausedByTab = false;
+        this.pauseStartTime = 0;
+        
+        // Сбрасываем состояние события заправки при паузе
+        this.wasFuelScreenVisibleBeforePause = false;
+        this.wasSlowingDownBeforePause = false;
+        this.wasFuelEventTriggeredBeforePause = false;
+        this.wasFuelEventCompletedBeforePause = false;
+        
+        // Очищаем интервал проверки видимости
+        if (this.visibilityCheckInterval) {
+            clearInterval(this.visibilityCheckInterval);
+            this.visibilityCheckInterval = null;
+        }
+        
+        // Перезапускаем периодическую проверку
+        this.visibilityCheckInterval = setInterval(() => {
+            if (document.hidden && this.gameRunning) {
+                console.log('Periodic check: tab is hidden, pausing game');
+                this.handleVisibilityChange();
+            }
+        }, 100);
+        
         // Сбрасываем состояние события "закончился бензин"
         this.fuelEventTriggered = false;
         this.isSlowingDown = false;
@@ -428,6 +750,12 @@ export class Game {
         this.directionChangeAnimationId = null;
         this.obstacleSpeedAtSlowDown = null;
         
+        // Сбрасываем состояние столкновения
+        this.isCollisionInProgress = false;
+        
+        // Сбрасываем состояние изменения направления препятствий
+        this.obstaclesReversed = false;
+        
         // Сбрасываем индикатор топлива
         this.fuelIndicatorVisible = false;
         this.fuelIndicatorCurrentFrame = 0;
@@ -439,8 +767,12 @@ export class Game {
         this.obstacleManager.clear();
         this.player.reset();
         
+        // Обновляем тип машины при рестарте
+        this.player.setCarType(this.selectedCarType, this.assetLoader);
+        
         this.gameOverElement.style.display = 'none';
         this.fuelEmptyElement.style.display = 'none';
+        this.gamePausedElement.style.display = 'none';
         this.screenFadeElement.classList.remove('active');
         this.inputManager.setFuelScreenVisible(false);
         
@@ -482,7 +814,7 @@ export class Game {
     }
     
     update(deltaTime) {
-        if (!this.gameRunning) return;
+        if (!this.gameRunning || !this.isTabVisible || document.hidden || this.gamePausedByTab) return;
         
         // Обновляем игрока с учетом скорости поворота
         const turnSpeedMultiplier = this.isSlowingDown ? (this.gameSpeed / CONFIG.GAME.BASE_SPEED) : 1;
@@ -492,13 +824,27 @@ export class Game {
         const obstacleSpeed = this.isSlowingDown ? this.obstacleSpeedAtSlowDown : this.gameSpeed;
         // Во время экрана заправки не спавним новые препятствия
         const allowSpawning = !this.isFuelScreenVisible;
-        this.obstacleManager.update(deltaTime, this.gameSpeed, obstacleSpeed, this.player.y, this.isSlowingDown, allowSpawning);
+        // Передаем информацию о том, что препятствия развернуты
+        this.obstacleManager.update(deltaTime, this.gameSpeed, obstacleSpeed, this.player.y, this.isSlowingDown, allowSpawning, this.obstaclesReversed);
         
         // Дорога замедляется вместе с игроком для реалистичности
         this.road.update(deltaTime, this.gameSpeed);
         
         // Проверяем столкновения (всегда, кроме ускорения)
-        if (!this.isAccelerating && this.obstacleManager.checkCollisions(this.player)) {
+        if (!this.isAccelerating && !this.isCollisionInProgress && this.obstacleManager.checkCollisions(this.player)) {
+            // Устанавливаем флаг столкновения
+            this.isCollisionInProgress = true;
+            
+            // Запускаем тряску для игрока при столкновении
+            this.player.startShake(CONFIG.SHAKE.COLLISION_INTENSITY, CONFIG.SHAKE.COLLISION_DURATION);
+            
+            // Останавливаем движение игрока
+            this.player.stopMovement();
+            
+            // Меняем направление всех препятствий на "вверх"
+            this.obstaclesReversed = true;
+            this.obstacleManager.reverseAllObstacles();
+            
             // Останавливаем анимацию замедления, если она активна
             this.stopSlowDownAnimation();
             
@@ -509,7 +855,11 @@ export class Game {
                 this.isFuelScreenVisible = false;
                 this.inputManager.setFuelScreenVisible(false);
             }
-            this.gameOver();
+            
+            // Задержка перед game over, чтобы тряска успела проиграться
+            setTimeout(() => {
+                this.gameOver();
+            }, 600); // 600ms - время тряски
             return;
         }
         
@@ -551,7 +901,11 @@ export class Game {
     }
     
     gameLoop(currentTime = 0) {
-        if (!this.gameRunning) return;
+        // Проверяем видимость вкладки и состояние игры
+        if (!this.gameRunning || !this.isTabVisible || document.hidden || this.gamePausedByTab) {
+            console.log('Game loop stopped - gameRunning:', this.gameRunning, 'isTabVisible:', this.isTabVisible, 'document.hidden:', document.hidden, 'gamePausedByTab:', this.gamePausedByTab);
+            return;
+        }
         
         const deltaTime = currentTime - this.lastTime;
         this.lastTime = currentTime;

@@ -4,7 +4,8 @@ export const CONFIG = {
     GAME: {
         BASE_SPEED: 0.5,
         OBSTACLE_SPAWN_RATE: 0.01,
-        SCORE_MULTIPLIER: 0.1 // Уменьшено для подсчета метров (было 5)
+        SCORE_MULTIPLIER: 0.1, // Уменьшено для подсчета метров (было 5)
+        FUEL_EVENT_ENABLED: false // Флаг для включения/выключения события заправки (изменить на true для включения)
     },
     
     // Игрок
@@ -56,6 +57,14 @@ export const CONFIG = {
         FUEL_INDICATOR_SWITCH_INTERVAL: 600 // мс
     },
     
+    // Тряска при столкновении
+    SHAKE: {
+        COLLISION_INTENSITY: 5, // пикселей
+        COLLISION_DURATION: 600, // мс
+        OTHER_CARS_INTENSITY: 3, // пикселей для остальных машин
+        OTHER_CARS_DURATION: 400 // мс для остальных машин
+    },
+    
     // Индикатор топлива
     FUEL_INDICATOR: {
         WIDTH: 80,  // Увеличиваем размер для лучшей видимости
@@ -72,7 +81,13 @@ export const CONFIG = {
     
     // Спрайты
     SPRITES: {
-        PLAYER_CAR: 'assets/images/player-car.png',
+        PLAYER_CARS: {
+            sedan: 'assets/images/sedan.png',
+            coupe: 'assets/images/coupe.png',
+            van: 'assets/images/van.png',
+            suv: 'assets/images/suv.png',
+            convertible: 'assets/images/convertible.png'
+        },
         OBSTACLE_CARS: [
             'assets/images/obstacle-car1.png',
             'assets/images/obstacle-car2.png',
@@ -85,5 +100,13 @@ export const CONFIG = {
             'assets/images/fuel-check1.png',
             'assets/images/fuel-check2.png'
         ]
+    },
+    
+    // Выбор машины
+    CAR_SELECTION: {
+        DEFAULT_CAR: 'sedan',
+        PREVIEW_SIZE: 120,
+        GRID_COLUMNS: 3,
+        TILE_SPACING: 20
     }
 };

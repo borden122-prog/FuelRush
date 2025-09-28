@@ -18,6 +18,12 @@
             <div class="score">Метры: <span id="score">0</span></div>
             <div class="screen-fade" id="screenFade"></div>
             
+            <!-- Экран для десктопных устройств -->
+            <div class="desktop-screen" id="desktopScreen">
+                <h1>Fuel Rush</h1>
+                <p class="desktop-message">Играть можно только с телефона, скопируйте ссылку и откройте с телефона</p>
+            </div>
+            
             <!-- Экран загрузки -->
             <div class="loading-screen" id="loadingScreen">
                 <h1>Fuel Rush</h1>
@@ -27,7 +33,12 @@
             <!-- Стартовый экран -->
             <div class="start-screen" id="startScreen">
                 <h2>Fuel Rush</h2>
-                <button id="startBtn">Играть</button>
+                <div class="car-selection">
+                    <div class="car-grid" id="carGrid">
+                        <!-- Плитки машин будут добавлены динамически -->
+                    </div>
+                </div>
+                <button id="startBtn" disabled>Играть</button>
             </div>
             
             <div class="game-over" id="gameOver">
@@ -39,6 +50,11 @@
             <div class="fuel-empty" id="fuelEmpty">
                 <h2>Закончился бензин, надо заправиться</h2>
                 <button id="refuelBtn">Заправиться</button>
+            </div>
+            
+            <div class="game-paused" id="gamePaused">
+                <h2>Игра приостановлена</h2>
+                <button id="resumeBtn">Продолжить</button>
             </div>
         </div>
     </div>
